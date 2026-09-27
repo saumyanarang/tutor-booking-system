@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: reservation
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/reservationdb
+    username: azki
+    password: azki!p@ss
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  profiles:
+    active: dev
+  cache:
+    type: redis
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    contexts: ${spring.profiles.active}
+    database-change-log-table: Z_LIQ_CHANGELOG
+    database-change-log-lock-table: Z_LIQ_CHANGELOG_LOCK
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+reservation:
+  queue:
+    batch-size: 50
+    poll-interval-ms: 10
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

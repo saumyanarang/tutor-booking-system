@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/reservationdb
+    username: azki
+    password: azki!p@ss
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+logging:
+  level:
+    root: info
+    com.azki.reservation: info
+    org.hibernate.SQL: info
