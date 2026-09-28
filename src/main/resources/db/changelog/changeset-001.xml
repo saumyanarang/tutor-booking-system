@@ -31,7 +31,7 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <createTable tableName="available_slot">
+        <createTable tableName="slot">
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -64,15 +64,15 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <createTable tableName="reservation">
+        <createTable tableName="booking">
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="user_id" type="BIGINT">
-                <constraints nullable="false" foreignKeyName="fk_reservation_user" references="users(id)"/>
+                <constraints nullable="false" foreignKeyName="fk_booking_user" references="users(id)"/>
             </column>
-            <column name="available_slot_id" type="BIGINT">
-                <constraints nullable="false" foreignKeyName="fk_reservation_slot" references="available_slot(id)" unique="true"/>
+            <column name="slot_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_booking_slot" references="slot(id)" unique="true"/>
             </column>
             <column name="reserved_at" type="TIMESTAMP">
                 <constraints nullable="false"/>
@@ -108,40 +108,40 @@
             INSERT INTO users (user_name, email, password, created_by, created_date, version)
             VALUES ('user3', 'user125@example.com', 'hashed_password_789', 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 09:00:00', '2025-10-01 10:00:00', false, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 10:00:00', '2025-10-01 11:00:00', false, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 11:00:00', '2025-10-01 12:00:00', false, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 12:00:00', '2025-10-01 13:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 13:00:00', '2025-10-01 14:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 14:00:00', '2025-10-01 15:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 15:00:00', '2025-10-01 16:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 16:00:00', '2025-10-01 17:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 17:00:00', '2025-10-01 18:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 18:00:00', '2025-10-01 19:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 19:00:00', '2025-10-01 20:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
 
-            INSERT INTO available_slot (start_time, end_time, is_reserved, created_by, created_date, version)
+            INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version)
             VALUES ('2025-10-01 20:00:00', '2025-10-01 21:00:00', FALSE, 'SYSTEM', CURRENT_TIMESTAMP, 0);
             ]]>
         </sql>

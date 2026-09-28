@@ -1,7 +1,7 @@
 package com.saumyanarang.tutorbooking.repository;
 
-import com.saumyanarang.tutorbooking.entity.AvailableSlot;
-import com.saumyanarang.tutorbooking.entity.Reservation;
+import com.saumyanarang.tutorbooking.entity.Slot;
+import com.saumyanarang.tutorbooking.entity.Booking;
 import com.saumyanarang.tutorbooking.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,16 +15,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @ActiveProfiles("test")
-class ReservationRepositoryTest {
+class BookingRepositoryTest {
 
     @Autowired
     private TestEntityManager entityManager;
 
     @Autowired
-    private ReservationRepository reservationRepository;
+    private BookingRepository bookingRepository;
 
     @Test
-    void existsByUserEmailAndStartTimeAfter_shouldReturnTrueWhenFutureReservationExists() {
+    void existsByUserEmailAndStartTimeAfter_shouldReturnTrueWhenFutureBookingExists() {
         // Given
         String email = "test@azki.com";
         LocalDateTime now = LocalDateTime.now();
@@ -38,30 +38,30 @@ class ReservationRepositoryTest {
         entityManager.persist(user);
 
         // Create available slot
-        AvailableSlot slot = new AvailableSlot();
+        Slot slot = new Slot();
         slot.setStartTime(futureTime);
         slot.setEndTime(futureTime.plusHours(1));
         slot.setReserved(true);
         entityManager.persist(slot);
 
-        // Create reservation
-        Reservation reservation = new Reservation();
-        reservation.setUser(user);
-        reservation.setAvailableSlot(slot);
-        reservation.setReservedAt(now);
-        entityManager.persist(reservation);
+        // Create booking
+        Booking booking = new Booking();
+        booking.setUser(user);
+        booking.setSlot(slot);
+        booking.setReservedAt(now);
+        entityManager.persist(booking);
 
         entityManager.flush();
 
         // When
-        boolean exists = reservationRepository.existsByUserEmailAndStartTimeAfter(email, now);
+        boolean exists = bookingRepository.existsByUserEmailAndStartTimeAfter(email, now);
 
         // Then
         assertTrue(exists);
     }
 
     @Test
-    void existsByUserEmailAndStartTimeAfter_shouldReturnFalseWhenNoFutureReservationExists() {
+    void existsByUserEmailAndStartTimeAfter_shouldReturnFalseWhenNoFutureBookingExists() {
         // Given
         String email = "test@example.com";
         LocalDateTime now = LocalDateTime.now();
@@ -75,23 +75,23 @@ class ReservationRepositoryTest {
         entityManager.persist(user);
 
         // Create available slot
-        AvailableSlot slot = new AvailableSlot();
+        Slot slot = new Slot();
         slot.setStartTime(pastTime);
         slot.setEndTime(pastTime.plusHours(1));
         slot.setReserved(true);
         entityManager.persist(slot);
 
-        // Create reservation
-        Reservation reservation = new Reservation();
-        reservation.setUser(user);
-        reservation.setAvailableSlot(slot);
-        reservation.setReservedAt(pastTime);
-        entityManager.persist(reservation);
+        // Create booking
+        Booking booking = new Booking();
+        booking.setUser(user);
+        booking.setSlot(slot);
+        booking.setReservedAt(pastTime);
+        entityManager.persist(booking);
 
         entityManager.flush();
 
         // When
-        boolean exists = reservationRepository.existsByUserEmailAndStartTimeAfter(email, now);
+        boolean exists = bookingRepository.existsByUserEmailAndStartTimeAfter(email, now);
 
         // Then
         assertFalse(exists);

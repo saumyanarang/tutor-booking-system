@@ -30,7 +30,7 @@ public class SecurityConfig {
                             "/api/auth/**",
                             "/swagger-ui/**",
                             "/v3/api-docs/**",
-                            "/api/v1/reservations/**" // Allow unrestricted access to reservation endpoints
+                            "/api/v1/bookings/**" // Allow unrestricted access to booking endpoints
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -1,32 +1,32 @@
 package com.saumyanarang.tutorbooking.config;
 
-import com.saumyanarang.tutorbooking.service.ReservationQueueService;
+import com.saumyanarang.tutorbooking.service.BookingQueueService;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 /**
- * Custom health indicator that monitors the reservation queue.
+ * Custom health indicator that monitors the booking queue.
  * Provides insights into the queue's health and backlog status.
  */
 @Component
-public class ReservationQueueHealthIndicator implements HealthIndicator {
+public class BookingQueueHealthIndicator implements HealthIndicator {
 
-    private final ReservationQueueService reservationQueueService;
+    private final BookingQueueService bookingQueueService;
 
     // Configurable thresholds for queue health status
     private static final int QUEUE_WARNING_THRESHOLD = 50;
     private static final int QUEUE_CRITICAL_THRESHOLD = 100;
     private static final int DLQ_WARNING_THRESHOLD = 10;
 
-    public ReservationQueueHealthIndicator(ReservationQueueService reservationQueueService) {
-        this.reservationQueueService = reservationQueueService;
+    public BookingQueueHealthIndicator(BookingQueueService bookingQueueService) {
+        this.bookingQueueService = bookingQueueService;
     }
 
     @Override
     public Health health() {
-        long queueSize = reservationQueueService.getQueueLength();
-        long dlqSize = reservationQueueService.getDLQLength();
+        long queueSize = bookingQueueService.getQueueLength();
+        long dlqSize = bookingQueueService.getDLQLength();
 
         // Build health response with queue details
         Health.Builder builder = Health.up()

@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "available_slot")
-public class AvailableSlot extends Auditable implements Serializable {
+@Table(name = "slot")
+public class Slot extends Auditable implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 

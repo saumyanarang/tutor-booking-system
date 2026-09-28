@@ -2,9 +2,9 @@ package com.saumyanarang.tutorbooking.controller;
 
 import com.saumyanarang.tutorbooking.dto.ApiError;
 import com.saumyanarang.tutorbooking.exception.BusinessException;
-import com.saumyanarang.tutorbooking.exception.DuplicateReservationException;
-import com.saumyanarang.tutorbooking.exception.ReservationCapacityExceededException;
-import com.saumyanarang.tutorbooking.exception.ReservationNotAvailableException;
+import com.saumyanarang.tutorbooking.exception.DuplicateBookingException;
+import com.saumyanarang.tutorbooking.exception.BookingCapacityExceededException;
+import com.saumyanarang.tutorbooking.exception.BookingNotAvailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,25 +29,25 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(DuplicateReservationException.class)
+    @ExceptionHandler(DuplicateBookingException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ResponseEntity<ApiError> handleDuplicateReservation(DuplicateReservationException ex, HttpServletRequest request) {
-        logger.warn("Duplicate reservation attempt: {}", ex.getMessage());
-        return buildErrorResponse(ex, "A reservation already exists for this user",
+    public ResponseEntity<ApiError> handleDuplicateBooking(DuplicateBookingException ex, HttpServletRequest request) {
+        logger.warn("Duplicate booking attempt: {}", ex.getMessage());
+        return buildErrorResponse(ex, "A booking already exists for this user",
                 HttpStatus.CONFLICT, request.getRequestURI());
     }
 
-    @ExceptionHandler(ReservationNotAvailableException.class)
+    @ExceptionHandler(BookingNotAvailableException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseEntity<ApiError> handleReservationNotAvailable(ReservationNotAvailableException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiError> handleBookingNotAvailable(BookingNotAvailableException ex, HttpServletRequest request) {
         logger.warn("No available slots found: {}", ex.getMessage());
         return buildErrorResponse(ex, "No available time slots found",
                 HttpStatus.NOT_FOUND, request.getRequestURI());
     }
 
-    @ExceptionHandler(ReservationCapacityExceededException.class)
+    @ExceptionHandler(BookingCapacityExceededException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ResponseEntity<ApiError> handleCapacityExceeded(ReservationCapacityExceededException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiError> handleCapacityExceeded(BookingCapacityExceededException ex, HttpServletRequest request) {
         logger.error("System capacity exceeded: {}", ex.getMessage());
         return buildErrorResponse(ex, "System is currently at full capacity, please try again later",
                 HttpStatus.SERVICE_UNAVAILABLE, request.getRequestURI());

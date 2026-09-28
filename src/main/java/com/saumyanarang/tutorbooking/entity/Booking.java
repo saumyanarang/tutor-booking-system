@@ -11,8 +11,8 @@ import java.util.Objects;
 @Getter
 @Setter
 @Entity
-@Table(name = "reservation")
-public class Reservation extends Auditable{
+@Table(name = "booking")
+public class Booking extends Auditable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,8 +22,8 @@ public class Reservation extends Auditable{
     private User user;
 
     @OneToOne(optional = false)
-    @JoinColumn(name = "available_slot_id", nullable = false)
-    private AvailableSlot availableSlot;
+    @JoinColumn(name = "slot_id", nullable = false)
+    private Slot slot;
 
     @Column(name = "reserved_at", nullable = false)
     private LocalDateTime reservedAt;
@@ -35,7 +35,7 @@ public class Reservation extends Auditable{
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        Reservation that = (Reservation) o;
+        Booking that = (Booking) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.saumyanarang</groupId>
-    <artifactId>reservation</artifactId>
+    <artifactId>booking</artifactId>
     <version>1.0.0</version>
-    <name>reservation</name>
-    <description>reservation appointments</description>
+    <name>booking</name>
+    <description>booking appointments</description>
     <url>https://azki.com</url>
     <developers>
         <developer>

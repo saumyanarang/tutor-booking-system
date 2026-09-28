@@ -15,7 +15,7 @@ import java.time.Duration;
  * This limits how many requests a client can make in a given time period.
  */
 @Configuration
-@ConditionalOnProperty(value = "reservation.rate-limiting.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "booking.rate-limiting.enabled", havingValue = "true", matchIfMissing = false)
 public class RateLimitConfig {
 
     // Rate limit: 20 requests per minute with a capacity of 20 tokens

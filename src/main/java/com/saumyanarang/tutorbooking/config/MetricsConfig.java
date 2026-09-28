@@ -13,15 +13,15 @@ import org.springframework.context.annotation.Configuration;
 public class MetricsConfig {
 
     @Bean
-    public Timer reservationProcessingTimer(MeterRegistry registry) {
-        return Timer.builder("reservation.processing.time")
-                .description("Time taken to process a reservation")
+    public Timer bookingProcessingTimer(MeterRegistry registry) {
+        return Timer.builder("booking.processing.time")
+                .description("Time taken to process a booking")
                 .register(registry);
     }
 
     @Bean
     public Timer slotSelectionTimer(MeterRegistry registry) {
-        return Timer.builder("reservation.slot.selection.time")
+        return Timer.builder("booking.slot.selection.time")
                 .description("Time taken to select an available slot")
                 .register(registry);
     }

@@ -1,15 +1,15 @@
-# Reservation — High-Concurrency Appointment Scheduling Backend
+# Booking — High-Concurrency Appointment Scheduling Backend
 
-A production-oriented appointment reservation backend built with **Java 21** and **Spring Boot 3.5**. The project focuses on reliable reservation processing under contention, using PostgreSQL for durable state and Redis for queueing, caching, status tracking, and rate-limiting support.
+A production-oriented appointment booking backend built with **Java 21** and **Spring Boot 3.5**. The project focuses on reliable booking processing under contention, using PostgreSQL for durable state and Redis for queueing, caching, status tracking, and rate-limiting support.
 
 ## Highlights
 
 - JWT-based authentication and Spring Security
-- Queue-based reservation processing for high-concurrency workloads
+- Queue-based booking processing for high-concurrency workloads
 - Automatic selection of the nearest available time slot
-- Reservation lifecycle tracking and cancellation
+- Booking lifecycle tracking and cancellation
 - Redis-backed request queue, status tracking, and caching
-- Optimistic locking for concurrent reservation updates
+- Optimistic locking for concurrent booking updates
 - Retry handling and dead-letter processing for failed requests
 - Configurable API rate limiting with Bucket4j
 - Liquibase database migrations
@@ -45,10 +45,10 @@ REST API
   +--> Security / Rate Limiting
   |
   v
-Reservation Services
+Booking Services
   |
   +--> PostgreSQL
-  |      Durable reservation state
+  |      Durable booking state
   |
   +--> Redis
          Queueing, caching, status tracking
@@ -56,17 +56,17 @@ Reservation Services
 
 The application uses a layered Spring architecture with controllers, services, repositories, security components, and infrastructure adapters around PostgreSQL and Redis.
 
-## Reservation Flow
+## Booking Flow
 
-A reservation request is accepted through the API and can be processed asynchronously through the Redis-backed queue.
+A booking request is accepted through the API and can be processed asynchronously through the Redis-backed queue.
 
 ```text
-Reservation request
+Booking request
   -> authentication + validation
   -> queue / processing
   -> find nearest available slot
-  -> persist reservation
-  -> publish reservation status
+  -> persist booking
+  -> publish booking status
 ```
 
 Concurrency-sensitive updates use optimistic locking so conflicting writes can be detected instead of silently overwriting one another.
@@ -78,9 +78,9 @@ The project includes several mechanisms intended for production-style failure ha
 - optimistic locking for concurrent modifications
 - automatic retry with backoff for transient failures
 - dead-letter handling for requests that cannot be processed successfully
-- reservation expiration management
+- booking expiration management
 - Redis TTL policies to limit stale transient state
-- status tracking for asynchronous reservation processing
+- status tracking for asynchronous booking processing
 
 ## Security
 
@@ -105,13 +105,13 @@ GET /actuator/metrics
 
 Prometheus integration is provided through Micrometer.
 
-Reservation-specific metrics documented by the project include:
+Booking-specific metrics documented by the project include:
 
 ```text
-reservation.queue.length
-reservation.dlq.length
-reservation.queue.processed
-reservation.queue.errors.*
+booking.queue.length
+booking.dlq.length
+booking.queue.processed
+booking.queue.errors.*
 ```
 
 ## API Documentation
@@ -131,10 +131,10 @@ http://localhost:8080/swagger-ui/index.html
 
 ## Configuration
 
-Reservation behavior can be configured through `application.yml`.
+Booking behavior can be configured through `application.yml`.
 
 ```yaml
-reservation:
+booking:
   queue:
     batch-size: 50
     poll-interval-ms: 10
@@ -154,8 +154,8 @@ Adjust these values for the deployment environment and expected workload.
 Clone the repository:
 
 ```bash
-git clone https://github.com/HoomanDevp/reservation.git
-cd reservation
+git clone https://github.com/HoomanDevp/booking.git
+cd booking
 ```
 
 Start PostgreSQL and Redis using the repository's container configuration where applicable:
@@ -190,7 +190,7 @@ Run the test suite with:
 ./mvnw test
 ```
 
-A Postman collection is included for exercising authentication, reservation creation, status tracking, and cancellation flows.
+A Postman collection is included for exercising authentication, booking creation, status tracking, and cancellation flows.
 
 ## Project Structure
 
@@ -203,18 +203,18 @@ exception/    Application exceptions
 filter/       Web filters, including rate limiting
 repository/   Spring Data repositories
 security/     JWT authentication and security configuration
-service/      Reservation and queue-processing logic
+service/      Booking and queue-processing logic
 ```
 
 ## Core Components
 
-### ReservationService
+### BookingService
 
-Contains the core reservation business logic, including slot selection, reservation creation, cancellation, and conflict handling.
+Contains the core booking business logic, including slot selection, booking creation, cancellation, and conflict handling.
 
-### ReservationQueueService
+### BookingQueueService
 
-Coordinates Redis-backed asynchronous reservation processing, status tracking, retries, and failed-request handling.
+Coordinates Redis-backed asynchronous booking processing, status tracking, retries, and failed-request handling.
 
 ### RedisCleanupService
 
@@ -226,11 +226,11 @@ Applies configurable request throttling and returns HTTP `429 Too Many Requests`
 
 ## Design Goals
 
-The project is intended to demonstrate a reservation backend that treats concurrency and operational failure as first-class concerns rather than only implementing the happy path.
+The project is intended to demonstrate a booking backend that treats concurrency and operational failure as first-class concerns rather than only implementing the happy path.
 
 The design emphasizes:
 
-- explicit reservation state
+- explicit booking state
 - contention-aware persistence
 - asynchronous workload handling
 - retry and failure paths
