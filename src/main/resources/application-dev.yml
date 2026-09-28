@@ -20,5 +20,5 @@ spring:
 logging:
   level:
     root: info
-    com.saumyanarang.reservation: info
+    com.saumyanarang.tutorbooking: info
     org.hibernate.SQL: info
