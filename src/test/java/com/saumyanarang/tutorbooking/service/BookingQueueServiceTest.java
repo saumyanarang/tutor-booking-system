@@ -1,7 +1,7 @@
 package com.saumyanarang.tutorbooking.service;
 
-import com.saumyanarang.tutorbooking.dto.reservation.ReservationRequestDto;
-import com.saumyanarang.tutorbooking.exception.DuplicateReservationException;
+import com.saumyanarang.tutorbooking.dto.booking.BookingRequestDto;
+import com.saumyanarang.tutorbooking.exception.DuplicateBookingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -19,13 +19,13 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ReservationQueueServiceTest {
+class BookingQueueServiceTest {
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
 
     @Mock
-    private ReservationService reservationService;
+    private BookingService bookingService;
 
     @Mock
     private ListOperations<String, Object> listOperations;
@@ -35,10 +35,10 @@ class ReservationQueueServiceTest {
 
     private ObjectMapper objectMapper;
     private MeterRegistry meterRegistry;
-    private ReservationQueueService queueService;
+    private BookingQueueService queueService;
     private final RedisCleanupService redisCleanupService;
 
-    ReservationQueueServiceTest(ObjectMapper objectMapper, MeterRegistry meterRegistry, ReservationQueueService queueService, RedisCleanupService redisCleanupService) {
+    BookingQueueServiceTest(ObjectMapper objectMapper, MeterRegistry meterRegistry, BookingQueueService queueService, RedisCleanupService redisCleanupService) {
         this.objectMapper = objectMapper;
         this.meterRegistry = meterRegistry;
         this.queueService = queueService;
@@ -54,29 +54,29 @@ class ReservationQueueServiceTest {
         when(redisTemplate.opsForList()).thenReturn(listOperations);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
-        queueService = new ReservationQueueService(redisTemplate, reservationService, objectMapper, meterRegistry,redisCleanupService);
+        queueService = new BookingQueueService(redisTemplate, bookingService, objectMapper, meterRegistry,redisCleanupService);
     }
 
     @Test
-    void shouldEnqueueReservationRequest() {
+    void shouldEnqueueBookingRequest() {
         // Given
-        ReservationRequestDto request = new ReservationRequestDto();
+        BookingRequestDto request = new BookingRequestDto();
         request.setEmail("test@example.com");
 
         // When
-        String requestId = queueService.enqueueReservationRequest(request);
+        String requestId = queueService.enqueueBookingRequest(request);
 
         // Then
         assertNotNull(requestId);
         verify(listOperations).rightPush(anyString(), anyString());
-        verify(valueOperations).set(contains("reservation:status:"), eq(ReservationQueueService.RequestStatus.QUEUED.name()));
+        verify(valueOperations).set(contains("booking:status:"), eq(BookingQueueService.RequestStatus.QUEUED.name()));
     }
 
     @Test
     void shouldGetRequestStatus() {
         // Given
         String requestId = "test-request-id";
-        String status = ReservationQueueService.RequestStatus.PROCESSING.name();
+        String status = BookingQueueService.RequestStatus.PROCESSING.name();
         when(valueOperations.get(anyString())).thenReturn(status);
 
         // When
@@ -84,7 +84,7 @@ class ReservationQueueServiceTest {
 
         // Then
         assertEquals(status, result);
-        verify(valueOperations).get("reservation:status:" + requestId);
+        verify(valueOperations).get("booking:status:" + requestId);
     }
 
     @Test
@@ -98,7 +98,7 @@ class ReservationQueueServiceTest {
 
         // Then
         assertNull(result);
-        verify(valueOperations).get("reservation:status:" + requestId);
+        verify(valueOperations).get("booking:status:" + requestId);
     }
 
     @Test
@@ -112,19 +112,19 @@ class ReservationQueueServiceTest {
 
         // Then
         assertEquals(expectedLength, length);
-        verify(listOperations).size("reservation:queue");
+        verify(listOperations).size("booking:queue");
     }
 
     @Test
-    void shouldHandleDuplicateReservationException() {
+    void shouldHandleDuplicateBookingException() {
         // Given
-        ReservationRequestDto request = new ReservationRequestDto();
+        BookingRequestDto request = new BookingRequestDto();
         request.setEmail("test@example.com");
 
         when(queueService.isUserAlreadyInQueue(anyString())).thenReturn(true);
 
         // When/Then
-        assertThrows(DuplicateReservationException.class, () -> queueService.enqueueReservationRequest(request));
+        assertThrows(DuplicateBookingException.class, () -> queueService.enqueueBookingRequest(request));
 
         verify(redisTemplate, never()).opsForList();
     }

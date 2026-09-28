@@ -13,17 +13,17 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Service responsible for cleaning up Redis resources to prevent memory growth.
- * Periodically scans and removes old keys related to reservation status tracking.
+ * Periodically scans and removes old keys related to booking status tracking.
  */
 @Service
 public class RedisCleanupService {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisCleanupService.class);
-    private static final String STATUS_KEY_PREFIX = "reservation:status:";
+    private static final String STATUS_KEY_PREFIX = "booking:status:";
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${reservation.status.expiry-hours:24}")
+    @Value("${booking.status.expiry-hours:24}")
     private int statusExpiryHours;
 
     public RedisCleanupService(RedisTemplate<String, Object> redisTemplate) {
@@ -44,7 +44,7 @@ public class RedisCleanupService {
      */
     @Scheduled(cron = "0 0 2 * * ?")
     public void cleanupOldStatusKeys() {
-        logger.info("Starting scheduled cleanup of old reservation status keys");
+        logger.info("Starting scheduled cleanup of old booking status keys");
         try {
             // Use scan command with count option to avoid blocking Redis
             Set<String> keys = redisTemplate.keys(STATUS_KEY_PREFIX + "*");

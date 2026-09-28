@@ -1,11 +1,11 @@
 package com.saumyanarang.tutorbooking.service;
 
-import com.saumyanarang.tutorbooking.entity.AvailableSlot;
-import com.saumyanarang.tutorbooking.entity.Reservation;
+import com.saumyanarang.tutorbooking.entity.Slot;
+import com.saumyanarang.tutorbooking.entity.Booking;
 import com.saumyanarang.tutorbooking.entity.User;
-import com.saumyanarang.tutorbooking.exception.DuplicateReservationException;
-import com.saumyanarang.tutorbooking.exception.ReservationNotAvailableException;
-import com.saumyanarang.tutorbooking.repository.ReservationRepository;
+import com.saumyanarang.tutorbooking.exception.DuplicateBookingException;
+import com.saumyanarang.tutorbooking.exception.BookingNotAvailableException;
+import com.saumyanarang.tutorbooking.repository.BookingRepository;
 import com.saumyanarang.tutorbooking.repository.TimeSlotRepository;
 import com.saumyanarang.tutorbooking.repository.UserRepository;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -26,13 +26,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ReservationServiceTest {
+class BookingServiceTest {
 
     @Mock
     private TimeSlotRepository timeSlotRepository;
 
     @Mock
-    private ReservationRepository reservationRepository;
+    private BookingRepository bookingRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -43,14 +43,14 @@ class ReservationServiceTest {
     private MeterRegistry meterRegistry;
 
     @InjectMocks
-    private ReservationService reservationService;
+    private BookingService bookingService;
 
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        reservationService = new ReservationService(
+        bookingService = new BookingService(
                 timeSlotRepository,
-                reservationRepository,
+                bookingRepository,
                 userRepository,
                 meterRegistry,
                 cacheableOperations
@@ -58,25 +58,25 @@ class ReservationServiceTest {
     }
 
     @Test
-    void shouldFindNextAvailableSlot() {
+    void shouldFindNextSlot() {
         // Given
         LocalDateTime now = LocalDateTime.now();
-        AvailableSlot availableSlot = new AvailableSlot();
-        availableSlot.setId(1L);
-        availableSlot.setStartTime(now.plusHours(1));
-        availableSlot.setEndTime(now.plusHours(2));
-        availableSlot.setReserved(false);
+        Slot slot = new Slot();
+        slot.setId(1L);
+        slot.setStartTime(now.plusHours(1));
+        slot.setEndTime(now.plusHours(2));
+        slot.setReserved(false);
 
         when(timeSlotRepository.findNextAvailable(any(LocalDateTime.class)))
-                .thenReturn(Optional.of(availableSlot));
+                .thenReturn(Optional.of(slot));
 
         // When
-        Optional<AvailableSlot> result = reservationService.findNextAvailableSlotCached();
+        Optional<Slot> result = bookingService.findNextSlotCached();
 
         // Then
         assertTrue(result.isPresent());
-        assertEquals(availableSlot.getId(), result.get().getId());
-        assertEquals(availableSlot.getStartTime(), result.get().getStartTime());
+        assertEquals(slot.getId(), result.get().getId());
+        assertEquals(slot.getStartTime(), result.get().getStartTime());
     }
 
     @Test
@@ -89,36 +89,36 @@ class ReservationServiceTest {
         user.setId(1L);
         user.setEmail(email);
 
-        AvailableSlot slot = new AvailableSlot();
+        Slot slot = new Slot();
         slot.setId(1L);
         slot.setStartTime(now.plusHours(1));
         slot.setEndTime(now.plusHours(2));
         slot.setReserved(false);
 
-        Reservation reservation = new Reservation();
-        reservation.setId(1L);
-        reservation.setUser(user);
-        reservation.setAvailableSlot(slot);
+        Booking booking = new Booking();
+        booking.setId(1L);
+        booking.setUser(user);
+        booking.setSlot(slot);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(timeSlotRepository.findNextAvailable(any(LocalDateTime.class))).thenReturn(Optional.of(slot));
         when(timeSlotRepository.findById(slot.getId())).thenReturn(Optional.of(slot));
-        when(timeSlotRepository.save(any(AvailableSlot.class))).thenReturn(slot);
-        when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
-        when(reservationRepository.existsByUserEmailAndStartTimeAfter(anyString(), any(LocalDateTime.class))).thenReturn(false);
+        when(timeSlotRepository.save(any(Slot.class))).thenReturn(slot);
+        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
+        when(bookingRepository.existsByUserEmailAndStartTimeAfter(anyString(), any(LocalDateTime.class))).thenReturn(false);
 
         // When
-        Reservation result = reservationService.reserveNearestSlot(email);
+        Booking result = bookingService.reserveNearestSlot(email);
 
         // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        verify(timeSlotRepository).save(any(AvailableSlot.class));
-        verify(reservationRepository).save(any(Reservation.class));
+        verify(timeSlotRepository).save(any(Slot.class));
+        verify(bookingRepository).save(any(Booking.class));
     }
 
     @Test
-    void shouldThrowExceptionWhenUserAlreadyHasActiveReservation() {
+    void shouldThrowExceptionWhenUserAlreadyHasActiveBooking() {
         // Given
         String email = "test@example.com";
         User user = new User();
@@ -126,10 +126,10 @@ class ReservationServiceTest {
         user.setEmail(email);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(reservationRepository.existsByUserEmailAndStartTimeAfter(anyString(), any(LocalDateTime.class))).thenReturn(true);
+        when(bookingRepository.existsByUserEmailAndStartTimeAfter(anyString(), any(LocalDateTime.class))).thenReturn(true);
 
         // When/Then
-        assertThrows(DuplicateReservationException.class, () -> reservationService.reserveNearestSlot(email));
+        assertThrows(DuplicateBookingException.class, () -> bookingService.reserveNearestSlot(email));
     }
 
     @Test
@@ -141,42 +141,42 @@ class ReservationServiceTest {
         user.setEmail(email);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(reservationRepository.existsByUserEmailAndStartTimeAfter(anyString(), any(LocalDateTime.class))).thenReturn(false);
+        when(bookingRepository.existsByUserEmailAndStartTimeAfter(anyString(), any(LocalDateTime.class))).thenReturn(false);
         when(timeSlotRepository.findNextAvailable(any(LocalDateTime.class))).thenReturn(Optional.empty());
 
         // When/Then
-        assertThrows(ReservationNotAvailableException.class, () -> reservationService.reserveNearestSlot(email));
+        assertThrows(BookingNotAvailableException.class, () -> bookingService.reserveNearestSlot(email));
     }
 
     @Test
-    void shouldCancelReservation() {
+    void shouldCancelBooking() {
         // Given
-        Long reservationId = 1L;
+        Long bookingId = 1L;
         LocalDateTime now = LocalDateTime.now();
 
         User user = new User();
         user.setId(1L);
         user.setEmail("test@example.com");
 
-        AvailableSlot slot = new AvailableSlot();
+        Slot slot = new Slot();
         slot.setId(1L);
         slot.setStartTime(now.plusHours(1));
         slot.setEndTime(now.plusHours(2));
         slot.setReserved(true);
 
-        Reservation reservation = new Reservation();
-        reservation.setId(reservationId);
-        reservation.setUser(user);
-        reservation.setAvailableSlot(slot);
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setUser(user);
+        booking.setSlot(slot);
 
-        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         // When
-        reservationService.cancelReservation(reservationId);
+        bookingService.cancelBooking(bookingId);
 
         // Then
-        verify(timeSlotRepository).save(any(AvailableSlot.class));
-        verify(reservationRepository).delete(any(Reservation.class));
+        verify(timeSlotRepository).save(any(Slot.class));
+        verify(bookingRepository).delete(any(Booking.class));
         assertFalse(slot.isReserved());
     }
 }

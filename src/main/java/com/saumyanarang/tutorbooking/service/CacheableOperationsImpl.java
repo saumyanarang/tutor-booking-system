@@ -6,7 +6,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import com.saumyanarang.tutorbooking.entity.AvailableSlot;
+import com.saumyanarang.tutorbooking.entity.Slot;
 import com.saumyanarang.tutorbooking.repository.TimeSlotRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -27,9 +27,9 @@ public class CacheableOperationsImpl implements CacheableOperations {
 
     @Override
     @Cacheable(value = "nextSlot", key = "'single'")
-    public Optional<AvailableSlot> findNextAvailableSlotCached(LocalDateTime now) {
+    public Optional<Slot> findNextSlotCached(LocalDateTime now) {
         logger.debug("Finding next available time slot (cached)");
-        Optional<AvailableSlot> slot = timeSlotRepository.findNextAvailable(now);
+        Optional<Slot> slot = timeSlotRepository.findNextAvailable(now);
         if (slot.isPresent()) {
             logger.debug("Found available slot: id={}, startTime={}", slot.get().getId(), slot.get().getStartTime());
         } else {

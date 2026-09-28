@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/reservation_test
+    url: jdbc:postgresql://localhost:5432/booking_test
     driver-class-name: org.postgresql.Driver
-    username: reservation_user
+    username: booking_user
     password: strongpassword
   jpa:
     hibernate:

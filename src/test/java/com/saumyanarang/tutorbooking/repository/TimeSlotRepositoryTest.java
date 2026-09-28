@@ -1,6 +1,6 @@
 package com.saumyanarang.tutorbooking.repository;
 
-import com.saumyanarang.tutorbooking.entity.AvailableSlot;
+import com.saumyanarang.tutorbooking.entity.Slot;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -31,19 +31,19 @@ class TimeSlotRepositoryTest {
         LocalDateTime slotTime3 = now.plusHours(3);
 
         // Already reserved slot (should be skipped)
-        AvailableSlot slot1 = new AvailableSlot();
+        Slot slot1 = new Slot();
         slot1.setStartTime(slotTime1);
         slot1.setEndTime(slotTime1.plusHours(1));
         slot1.setReserved(true);
 
         // Available slot (should be returned)
-        AvailableSlot slot2 = new AvailableSlot();
+        Slot slot2 = new Slot();
         slot2.setStartTime(slotTime2);
         slot2.setEndTime(slotTime2.plusHours(1));
         slot2.setReserved(false);
 
         // Another available slot (later, should not be returned)
-        AvailableSlot slot3 = new AvailableSlot();
+        Slot slot3 = new Slot();
         slot3.setStartTime(slotTime3);
         slot3.setEndTime(slotTime3.plusHours(1));
         slot3.setReserved(false);
@@ -55,7 +55,7 @@ class TimeSlotRepositoryTest {
         entityManager.flush();
 
         // When
-        Optional<AvailableSlot> result = timeSlotRepository.findNextAvailable(now);
+        Optional<Slot> result = timeSlotRepository.findNextAvailable(now);
 
         // Then
         assertTrue(result.isPresent());
@@ -69,12 +69,12 @@ class TimeSlotRepositoryTest {
         LocalDateTime now = LocalDateTime.now();
 
         // All slots are reserved
-        AvailableSlot slot1 = new AvailableSlot();
+        Slot slot1 = new Slot();
         slot1.setStartTime(now.plusHours(1));
         slot1.setEndTime(now.plusHours(2));
         slot1.setReserved(true);
 
-        AvailableSlot slot2 = new AvailableSlot();
+        Slot slot2 = new Slot();
         slot2.setStartTime(now.plusHours(2));
         slot2.setEndTime(now.plusHours(3));
         slot2.setReserved(true);
@@ -84,7 +84,7 @@ class TimeSlotRepositoryTest {
         entityManager.flush();
 
         // When
-        Optional<AvailableSlot> result = timeSlotRepository.findNextAvailable(now);
+        Optional<Slot> result = timeSlotRepository.findNextAvailable(now);
 
         // Then
         assertTrue(result.isEmpty());

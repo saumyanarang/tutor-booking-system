@@ -8,14 +8,14 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/reservationdb
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
       - SPRING_DATASOURCE_USERNAME=azki
       - SPRING_DATASOURCE_PASSWORD=azki!p@ss
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_LIQUIBASE_ENABLED=true
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
-      - LOGGING_FILE_NAME=/app/logs/reservation-app.log
+      - LOGGING_FILE_NAME=/app/logs/booking-app.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=reservationdb
+      - POSTGRES_DB=bookingdb
       - POSTGRES_USER=azki
       - POSTGRES_PASSWORD=azki!p@ss
     volumes:
@@ -44,7 +44,7 @@ services:
       # Optional: Add initialization scripts if needed
       # - ./src/main/resources/db/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U reservation_user -d reservationdb"]
+      test: ["CMD-SHELL", "pg_isready -U booking_user -d bookingdb"]
       interval: 10s
       timeout: 5s
       retries: 5

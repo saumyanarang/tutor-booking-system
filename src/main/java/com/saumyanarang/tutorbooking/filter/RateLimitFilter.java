@@ -19,7 +19,7 @@ import java.io.IOException;
  */
 @Component
 @Order(1)
-@ConditionalOnProperty(value = "reservation.rate-limiting.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "booking.rate-limiting.enabled", havingValue = "true", matchIfMissing = false)
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final Bucket bucket;
@@ -31,8 +31,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        // Only apply rate limiting to reservation API endpoints
-        if (request.getRequestURI().startsWith("/api/reservations")) {
+        // Only apply rate limiting to booking API endpoints
+        if (request.getRequestURI().startsWith("/api/bookings")) {
             if (bucket.tryConsume(1)) {
                 // Request allowed, continue chain
                 filterChain.doFilter(request, response);

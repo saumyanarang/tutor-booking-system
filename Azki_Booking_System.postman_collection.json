@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "f5b7e3d7-9c21-4a7e-8c9c-e09c3419fa8d",
-		"name": "Azki Reservation System",
-		"description": "API collection for testing the Azki Reservation System",
+		"name": "Azki Booking System",
+		"description": "API collection for testing the Azki Booking System",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -42,10 +42,10 @@
 			"description": "Authentication-related API endpoints."
 		},
 		{
-			"name": "Reservations",
+			"name": "Bookings",
 			"item": [
 				{
-					"name": "Create Reservation",
+					"name": "Create Booking",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -69,21 +69,21 @@
 							"raw": "{\n    \"email\": \"user@azki.com\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/reservations",
+							"raw": "{{baseUrl}}/api/bookings",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"reservations"
+								"bookings"
 							]
 						},
-						"description": "Request a new reservation for the nearest available time slot."
+						"description": "Request a new booking for the nearest available time slot."
 					},
 					"response": []
 				},
 				{
-					"name": "Get Reservation Status",
+					"name": "Get Booking Status",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -98,23 +98,23 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/reservations/status/{{requestId}}",
+							"raw": "{{baseUrl}}/api/bookings/status/{{requestId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"reservations",
+								"bookings",
 								"status",
 								"{{requestId}}"
 							]
 						},
-						"description": "Check the status of a reservation request."
+						"description": "Check the status of a booking request."
 					},
 					"response": []
 				},
 				{
-					"name": "Cancel Reservation",
+					"name": "Cancel Booking",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -129,22 +129,22 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/reservations/{{reservationId}}",
+							"raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"reservations",
-								"{{reservationId}}"
+								"bookings",
+								"{{bookingId}}"
 							]
 						},
-						"description": "Cancel an existing reservation."
+						"description": "Cancel an existing booking."
 					},
 					"response": []
 				}
 			],
-			"description": "Reservation-related API endpoints."
+			"description": "Booking-related API endpoints."
 		},
 		{
 			"name": "Monitoring & Health",
@@ -193,17 +193,17 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/actuator/metrics/reservation.queue.length",
+							"raw": "{{baseUrl}}/actuator/metrics/booking.queue.length",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"actuator",
 								"metrics",
-								"reservation.queue.length"
+								"booking.queue.length"
 							]
 						},
-						"description": "Check the current reservation queue length."
+						"description": "Check the current booking queue length."
 					},
 					"response": []
 				}
@@ -235,8 +235,8 @@
 					"    }",
 					"}",
 					"",
-					"// Extract requestId from create reservation response",
-					"if (pm.response.code === 202 && pm.info.requestName === \"Create Reservation\") {",
+					"// Extract requestId from create booking response",
+					"if (pm.response.code === 202 && pm.info.requestName === \"Create Booking\") {",
 					"    const responseJson = pm.response.json();",
 					"    if (responseJson.requestId) {",
 					"        pm.environment.set(\"requestId\", responseJson.requestId);",

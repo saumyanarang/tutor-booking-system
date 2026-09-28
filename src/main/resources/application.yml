@@ -1,9 +1,9 @@
 spring:
   application:
-    name: reservation
+    name: booking
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/reservationdb
+    url: jdbc:postgresql://localhost:5432/bookingdb
     username: azki
     password: azki!p@ss
   data:
@@ -27,7 +27,7 @@ spring:
     database-change-log-lock-table: Z_LIQ_CHANGELOG_LOCK
     change-log: classpath:db/changelog/db.changelog-master.xml
     enabled: true
-reservation:
+booking:
   queue:
     batch-size: 50
     poll-interval-ms: 10

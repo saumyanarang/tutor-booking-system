@@ -19,12 +19,12 @@ public class LoadMonitoringService {
     private final AtomicInteger activeRequests = new AtomicInteger(0);
     private final MeterRegistry meterRegistry;
 
-    @Value("${reservation.request.threshold:5}")
+    @Value("${booking.request.threshold:5}")
     private int requestThreshold;
 
     public LoadMonitoringService(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
-        this.meterRegistry.gauge("reservation.active.requests", activeRequests);
+        this.meterRegistry.gauge("booking.active.requests", activeRequests);
     }
 
     /**

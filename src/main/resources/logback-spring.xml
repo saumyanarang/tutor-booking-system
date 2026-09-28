@@ -16,9 +16,9 @@
 
     <!-- General application file appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/reservation-app.log</file>
+        <file>logs/booking-app.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/reservation-app.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/booking-app.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
