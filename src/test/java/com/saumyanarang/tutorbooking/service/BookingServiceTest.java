@@ -40,6 +40,12 @@ class BookingServiceTest {
     @Mock
     private CacheableOperations cacheableOperations;
 
+    @Mock
+    private SlotLockService slotLockService;
+
+    @Mock
+    private BookingTransactionService bookingTransactionService;
+
     private MeterRegistry meterRegistry;
 
     @InjectMocks
@@ -53,7 +59,9 @@ class BookingServiceTest {
                 bookingRepository,
                 userRepository,
                 meterRegistry,
-                cacheableOperations
+                cacheableOperations,
+                slotLockService,
+                bookingTransactionService
         );
     }
 
