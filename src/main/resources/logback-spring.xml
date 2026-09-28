@@ -56,7 +56,7 @@
             <appender-ref ref="STDOUT" />
         </root>
         <logger name="SECURITY_AUDIT" level="DEBUG" />
-        <logger name="com.azki.reservation" level="DEBUG" />
+        <logger name="com.saumyanarang.reservation" level="DEBUG" />
     </springProfile>
 
     <springProfile name="prod">

@@ -11,8 +11,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/reservationdb
       - SPRING_DATASOURCE_USERNAME=azki
       - SPRING_DATASOURCE_PASSWORD=azki!p@ss
-      - SPRING_REDIS_HOST=redis
-      - SPRING_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       - SPRING_LIQUIBASE_ENABLED=true
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
       - LOGGING_FILE_NAME=/app/logs/reservation-app.log
