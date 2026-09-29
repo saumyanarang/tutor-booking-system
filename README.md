@@ -1,247 +1,159 @@
-# Booking — High-Concurrency Appointment Scheduling Backend
+# Tutor Booking System — conflict-free slot booking
 
-A production-oriented appointment booking backend built with **Java 21** and **Spring Boot 3.5**. The project focuses on reliable booking processing under contention, using PostgreSQL for durable state and Redis for queueing, caching, status tracking, and rate-limiting support.
+A Spring Boot backend for booking coaching/tuition slots without double-booking, even when many
+people try to grab the same slot at the same moment.
 
-## Highlights
+Local tutors often manage bookings over WhatsApp and end up double-booking a slot. This project
+focuses on the hard part of that problem: **two requests racing for the same slot must never both win.**
 
-- JWT-based authentication and Spring Security
-- Queue-based booking processing for high-concurrency workloads
-- Automatic selection of the nearest available time slot
-- Booking lifecycle tracking and cancellation
-- Redis-backed request queue, status tracking, and caching
-- Optimistic locking for concurrent booking updates
-- Retry handling and dead-letter processing for failed requests
-- Configurable API rate limiting with Bucket4j
-- Liquibase database migrations
-- Prometheus/Micrometer metrics and Spring Boot Actuator health endpoints
-- OpenAPI / Swagger documentation
+## Credit and what I changed
 
-## Tech Stack
+This project started from [HoomanDevp/reservation](https://github.com/HoomanDevp/reservation)
+(an appointment-reservation backend; see that repository for its license terms). I used it as a
+reference, got it running, and then reworked it:
 
-| Area | Technology |
-|---|---|
-| Language | Java 21 |
-| Framework | Spring Boot 3.5 |
-| Web | Spring MVC |
-| Security | Spring Security + JWT |
-| Persistence | Spring Data JPA |
-| Database | PostgreSQL |
-| Cache / Queue | Redis |
-| Migrations | Liquibase |
-| Resilience | Spring Retry |
-| Rate limiting | Bucket4j |
-| Observability | Micrometer, Prometheus, Spring Boot Actuator |
-| API documentation | Springdoc OpenAPI / Swagger UI |
-| Build | Maven |
+- **Domain rename:** Reservation → Booking, AvailableSlot → Slot, new package `com.saumyanarang.tutorbooking`.
+- **New locking design:** the original relied on a database row lock (`SELECT ... FOR UPDATE`) inside one
+  big transaction. I put a **Redis distributed lock in front of the transaction** and split the database
+  work into its own service (see below).
+- **New tests:** 10 unit tests for the booking/lock logic, plus a concurrency stress script.
+- **Bug fixes** in the original that stopped it from running (listed at the bottom).
 
-## Architecture
+## Tech stack
 
-```text
-Client
-  |
-  v
-REST API
-  |
-  +--> Security / Rate Limiting
-  |
-  v
-Booking Services
-  |
-  +--> PostgreSQL
-  |      Durable booking state
-  |
-  +--> Redis
-         Queueing, caching, status tracking
+Java 21 · Spring Boot 3 · PostgreSQL 15 · Redis 7 · Liquibase · JWT auth · Docker Compose · JUnit 5 + Mockito
+
+## How double-booking is prevented
+
+Three layers, each catching what the previous one might miss:
+
+1. **Redis lock per slot** — `SET booking:lock:slot:{id} <token> NX PX 5000`. Only one request at a time
+   can work on a given slot. If the lock is taken, the request skips to the next free slot instead of waiting.
+2. **Re-check inside the transaction** — after getting the lock, the slot is re-read and must still be free.
+3. **`UNIQUE(slot_id)` on the `booking` table** — the final backstop. Even if the lock failed for some reason,
+   PostgreSQL itself refuses a second booking for the same slot.
+
+```
+request -> pick nearest free slots -> tryLock(slot) -> [ BEGIN -> re-check -> insert booking -> COMMIT ] -> unlock
+                                          |
+                                     lock taken? -> try the next slot / tell the caller to retry (503)
 ```
 
-The application uses a layered Spring architecture with controllers, services, repositories, security components, and infrastructure adapters around PostgreSQL and Redis.
+Two details that matter:
 
-## Booking Flow
+- **The lock wraps the transaction, never the other way round.** The lock is released only *after* the commit.
+  If it were released before, another request could read the slot before the change was visible and book it too.
+  That is why the database work lives in a separate bean (`BookingTransactionService`): Spring only commits when
+  that method returns through its proxy, which is before `BookingService` releases the lock.
+- **Safe unlock.** Release is a small Lua script that deletes the key only if it still holds *this* request's
+  token, so a request that outlived its 5-second lock can never delete somebody else's lock.
 
-A booking request is accepted through the API and can be processed asynchronously through the Redis-backed queue.
+Under heavy load (5 or more simultaneous requests) the API queues extra requests in Redis and answers
+`202 Accepted`; a worker processes them through the same locked booking flow.
 
-```text
-Booking request
-  -> authentication + validation
-  -> queue / processing
-  -> find nearest available slot
-  -> persist booking
-  -> publish booking status
+## Proof it works
+
+- **Unit tests:** `BookingServiceTest` (10 tests) covers: normal booking, duplicate booking by the same user,
+  no free slots, skipping a locked slot, every slot locked, slot taken before the transaction ran,
+  the database constraint rejecting a booking, and the lock being released even on unexpected errors.
+- **Concurrency stress test:** `scripts/race_test.sh N` creates N throwaway users, leaves exactly one free
+  slot, fires N booking requests at the same instant, and checks the database: **exactly one booking must
+  exist.** It cleans up after itself.
+
+```
+./scripts/race_test.sh 10
+# ...
+# PASS: 10 users raced for 1 slot, exactly 1 booking exists.
 ```
 
-Concurrency-sensitive updates use optimistic locking so conflicting writes can be detected instead of silently overwriting one another.
+## Quick start
 
-## Reliability & Concurrency
+Requirements: Docker Desktop.
 
-The project includes several mechanisms intended for production-style failure handling:
-
-- optimistic locking for concurrent modifications
-- automatic retry with backoff for transient failures
-- dead-letter handling for requests that cannot be processed successfully
-- booking expiration management
-- Redis TTL policies to limit stale transient state
-- status tracking for asynchronous booking processing
-
-## Security
-
-Security is implemented with Spring Security and JWT-based authentication.
-
-The API also includes:
-
-- request validation
-- configurable token expiration
-- configurable rate limiting
-- HTTP 429 responses when configured rate limits are exceeded
-- application logging suitable for operational and audit analysis
-
-## Observability
-
-The application exposes health and metrics through Spring Boot Actuator.
-
-```text
-GET /actuator/health
-GET /actuator/metrics
+```
+git clone https://github.com/saumyanarang/tutor-booking-system.git
+cd tutor-booking-system
+docker compose up -d --build
 ```
 
-Prometheus integration is provided through Micrometer.
+Wait ~25 seconds, then open Swagger UI at <http://localhost:8080/swagger-ui/index.html>.
 
-Booking-specific metrics documented by the project include:
+Container names come from the folder name. Run `docker ps` to see them; the commands below assume
+`reservation-postgres-1`, so swap in your folder's name if it differs.
 
-```text
-booking.queue.length
-booking.dlq.length
-booking.queue.processed
-booking.queue.errors.*
+### Add demo data
+
+There is no sign-up endpoint yet, so create a user and some future slots directly in the database
+(the password for the demo user is `password123`):
+
+```
+docker exec -i reservation-postgres-1 psql -U azki -d bookingdb << 'SQL'
+INSERT INTO users (user_name, email, password, created_by, created_date, version)
+VALUES ('demo', 'demo@example.com', '$2b$10$8fgULuumWGfylM4TY5ZO5ez8NfvGEfvBWr7BhWnljJFO5v2Zg.FpK', 'SYSTEM', now(), 0);
+
+INSERT INTO slot (start_time, end_time, is_reserved, created_by, created_date, version) VALUES
+ (now() + interval '1 day',  now() + interval '1 day 1 hour',  false, 'SYSTEM', now(), 0),
+ (now() + interval '2 days', now() + interval '2 days 1 hour', false, 'SYSTEM', now(), 0),
+ (now() + interval '3 days', now() + interval '3 days 1 hour', false, 'SYSTEM', now(), 0);
+SQL
 ```
 
-## API Documentation
+### Log in and book a slot
 
-After starting the application, Swagger UI is available at:
+```
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com","password":"password123"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 
-```text
-http://localhost:8080/swagger-ui/index.html
+curl -X POST http://localhost:8080/api/v1/bookings/reserve \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"email":"demo@example.com"}'
+# {"requestId":"direct-1","status":"SUCCESS"}
 ```
 
-## Requirements
+Booking again with the same user returns `409` (a user can hold one active booking).
 
-- JDK 21+
-- Maven
-- PostgreSQL 14+
-- Redis 6+
+## API
 
-## Configuration
+| Method | Path | What it does |
+|--------|------|--------------|
+| POST | `/api/auth/login` | Log in, returns a JWT |
+| POST | `/api/v1/bookings/reserve` | Book the nearest free slot for the given email |
+| GET | `/api/v1/bookings/status/{requestId}` | Status of a queued booking request |
+| DELETE | `/api/v1/bookings/cancel/{id}` | Cancel a booking and free its slot |
 
-Booking behavior can be configured through `application.yml`.
+Send the token as `Authorization: Bearer <token>`. Response codes worth knowing:
+`200` booked, `202` queued under load, `404` no free slot, `409` user already has a booking,
+`503` slots are being booked right now, retry.
 
-```yaml
-booking:
-  queue:
-    batch-size: 50
-    poll-interval-ms: 10
-  status:
-    expiry-hours: 24
-  rate-limiting:
-    enabled: true
-  expiry:
-    hours: 24
-    check-minutes: 15
+## Running the tests
+
+```
+docker run --rm -v "$PWD":/app -v "$HOME/.m2":/root/.m2 -w /app eclipse-temurin:21-jdk \
+  ./mvnw test -Dtest=BookingServiceTest
 ```
 
-Adjust these values for the deployment environment and expected workload.
+## Bugs I found and fixed in the original project
 
-## Getting Started
+- **Demo users could not log in.** The seeded passwords were placeholder text, not valid BCrypt hashes.
+- **JWT signing key was one byte too short.** The hardcoded secret was 31 bytes (248 bits) but HS256 requires
+  at least 256 bits, so every login crashed with a 500.
+- **Redis connection silently used `localhost`.** `docker-compose.yml` set `SPRING_REDIS_*` variables, but
+  Spring Boot 3 reads `spring.data.redis.*`, so the app could not reach Redis inside Docker.
+- **Demo slots were in the past**, so no slot ever counted as "available". (Fixed by seeding relative dates above.)
+- **`@Retryable` did nothing.** Retry was never enabled (`@EnableRetry` is missing), so the annotated retry
+  logic never ran. The lock design no longer depends on it.
 
-Clone the repository:
+## Known limitations / next steps
 
-```bash
-git clone https://github.com/HoomanDevp/booking.git
-cd booking
-```
-
-Start PostgreSQL and Redis using the repository's container configuration where applicable:
-
-```bash
-docker-compose up -d
-```
-
-Build the project:
-
-```bash
-./mvnw clean install
-```
-
-On Windows:
-
-```cmd
-mvnw.cmd clean install
-```
-
-Run the application:
-
-```bash
-./mvnw spring-boot:run
-```
-
-## Testing
-
-Run the test suite with:
-
-```bash
-./mvnw test
-```
-
-A Postman collection is included for exercising authentication, booking creation, status tracking, and cancellation flows.
-
-## Project Structure
-
-```text
-config/       Application configuration
-controller/   REST endpoints
- dto/          API request and response models
-entity/       JPA entities
-exception/    Application exceptions
-filter/       Web filters, including rate limiting
-repository/   Spring Data repositories
-security/     JWT authentication and security configuration
-service/      Booking and queue-processing logic
-```
-
-## Core Components
-
-### BookingService
-
-Contains the core booking business logic, including slot selection, booking creation, cancellation, and conflict handling.
-
-### BookingQueueService
-
-Coordinates Redis-backed asynchronous booking processing, status tracking, retries, and failed-request handling.
-
-### RedisCleanupService
-
-Manages expiration and cleanup of transient Redis state to reduce stale-key accumulation.
-
-### RateLimitFilter
-
-Applies configurable request throttling and returns HTTP `429 Too Many Requests` when the configured policy is exceeded.
-
-## Design Goals
-
-The project is intended to demonstrate a booking backend that treats concurrency and operational failure as first-class concerns rather than only implementing the happy path.
-
-The design emphasizes:
-
-- explicit booking state
-- contention-aware persistence
-- asynchronous workload handling
-- retry and failure paths
-- observable runtime behavior
-- clear API boundaries
-
-## License
-
-Free To Use License (FTUL). See `LICENSE` for details.
-
-## Author
-
-**Hooman Yarahmadi**  
-GitHub: [@HoomanDevp](https://github.com/HoomanDevp)
+- **13 inherited tests still fail** and are not part of this project's checks: the queue-service, controller,
+  and application/repository tests are stale, and the repository/context tests need a Postgres database
+  that only exists on the original author's machine. Next step: rewrite them with Testcontainers.
+- The JWT secret is hardcoded in `JwtUtil`; it should come from an environment variable.
+- No sign-up endpoint; users are created by SQL for now.
+- `docker ps` shows the app as `unhealthy`: the compose healthcheck calls port 8080, but the Actuator
+  health endpoint runs on 8081. Cosmetic; the API works.
+- The booking endpoint picks the nearest slot automatically; a "book this specific slot" variant would be a
+  natural next feature for real tutors.
