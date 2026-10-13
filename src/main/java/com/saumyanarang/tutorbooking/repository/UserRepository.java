@@ -24,4 +24,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
         List<User> users = findByEmailOrderedById(email);
         return users.isEmpty() ? Optional.empty() : Optional.of(users.getFirst());
     }
+
+    boolean existsByEmail(String email);
+
+    boolean existsByUserName(String userName);
 }

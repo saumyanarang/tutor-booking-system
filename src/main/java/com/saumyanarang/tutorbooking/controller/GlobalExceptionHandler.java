@@ -5,6 +5,10 @@ import com.saumyanarang.tutorbooking.exception.BusinessException;
 import com.saumyanarang.tutorbooking.exception.DuplicateBookingException;
 import com.saumyanarang.tutorbooking.exception.BookingCapacityExceededException;
 import com.saumyanarang.tutorbooking.exception.BookingNotAvailableException;
+import com.saumyanarang.tutorbooking.exception.ForbiddenOperationException;
+import com.saumyanarang.tutorbooking.exception.ResourceNotFoundException;
+import com.saumyanarang.tutorbooking.exception.SlotUnavailableException;
+import com.saumyanarang.tutorbooking.exception.UserAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,10 +16,12 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -96,12 +102,55 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity<ApiError> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        logger.warn("Resource not found: {}", ex.getMessage());
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ForbiddenOperationException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ApiError> handleForbiddenOperation(ForbiddenOperationException ex, HttpServletRequest request) {
+        logger.warn("Forbidden operation: {}", ex.getMessage());
+        return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(SlotUnavailableException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ApiError> handleSlotUnavailable(SlotUnavailableException ex, HttpServletRequest request) {
+        logger.warn("Slot unavailable: {}", ex.getMessage());
+        return buildError(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException ex, HttpServletRequest request) {
+        logger.warn("Sign-up rejected: {}", ex.getMessage());
+        return buildError(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+    }
+
+    /** Malformed JSON, or a value that does not fit the field (e.g. role "ADMIN", a date that is not a date). */
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiError> handleUnreadableRequest(Exception ex, HttpServletRequest request) {
+        logger.warn("Unreadable request: {}", ex.getMessage());
+        return buildError(HttpStatus.BAD_REQUEST,
+                "Request could not be read: check the JSON syntax and the allowed values (role is TUTOR or STUDENT, "
+                        + "times look like 2026-11-02T16:00:00)",
+                request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ApiError> handleGenericException(Exception ex, HttpServletRequest request) {
         logger.error("Unhandled exception occurred", ex);
         return buildErrorResponse(ex, "An unexpected error occurred",
                 HttpStatus.INTERNAL_SERVER_ERROR, request.getRequestURI());
+    }
+
+    private ResponseEntity<ApiError> buildError(HttpStatus status, String message, String path) {
+        return new ResponseEntity<>(new ApiError(status.value(), status.getReasonPhrase(), message, path), status);
     }
 
     private ResponseEntity<ApiError> buildErrorResponse(Exception ex, String message,

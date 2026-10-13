@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <!-- Tutor / student roles on accounts, and an owner (tutor) on every slot. -->
+    <changeSet id="2-add-roles-and-slot-owner" author="saumyanarang">
+        <addColumn tableName="users">
+            <column name="role" type="VARCHAR(20)" defaultValue="STUDENT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <sql>ALTER TABLE users ADD CONSTRAINT chk_users_role CHECK (role IN ('TUTOR', 'STUDENT'))</sql>
+
+        <!-- Nullable on purpose: the demo slots from changeset 1 have no owner. New slots always get one. -->
+        <addColumn tableName="slot">
+            <column name="tutor_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="slot"
+                                 baseColumnNames="tutor_id"
+                                 constraintName="fk_slot_tutor"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"/>
+        <sql>ALTER TABLE slot ADD CONSTRAINT chk_slot_times CHECK (end_time > start_time)</sql>
+
+        <createIndex tableName="slot" indexName="idx_slot_tutor_start">
+            <column name="tutor_id"/>
+            <column name="start_time"/>
+        </createIndex>
+        <createIndex tableName="slot" indexName="idx_slot_start_time">
+            <column name="start_time"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

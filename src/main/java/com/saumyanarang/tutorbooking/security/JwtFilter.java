@@ -5,6 +5,7 @@ import com.saumyanarang.tutorbooking.security.util.JwtUtil;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -33,9 +34,12 @@ public class JwtFilter extends GenericFilter {
             String token = authHeader.substring(7);
             if (jwtUtil.isTokenValid(token)) {
                 String email = jwtUtil.extractEmail(token);
+                // The role is read from the database on every request (not baked into the token),
+                // so changing or removing an account takes effect immediately.
                 userRepository.findByEmail(email).ifPresent(user -> {
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                            user.getEmail(), null, List.of()
+                            user.getEmail(), null,
+                            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                     );
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 });

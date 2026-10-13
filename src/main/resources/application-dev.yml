@@ -1,13 +1,14 @@
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/bookingdb
-    username: azki
-    password: azki!p@ss
+    url: jdbc:postgresql://localhost:5432/tutorbooking
+    username: tutorbooking
+    password: tutorbooking
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      # Liquibase owns the schema; Hibernate only checks that the entities match it.
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
         format_sql: true

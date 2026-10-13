@@ -21,6 +21,24 @@ public interface TimeSlotRepository extends JpaRepository<Slot, Long> {
     @Query("SELECT t FROM Slot t WHERE t.isReserved = false AND t.startTime >= :now ORDER BY t.startTime ASC")
     List<Slot> findAvailable(@Param("now") LocalDateTime now, Pageable pageable);
 
+    /** Free slots that have not started yet, from every tutor, soonest first (what a student browses). */
+    @Query("SELECT t FROM Slot t WHERE t.isReserved = false AND t.startTime > :now ORDER BY t.startTime ASC")
+    List<Slot> findAvailableSlots(@Param("now") LocalDateTime now, Pageable pageable);
+
+    /** Same as {@link #findAvailableSlots} but limited to one tutor. */
+    @Query("SELECT t FROM Slot t WHERE t.tutorId = :tutorId AND t.isReserved = false AND t.startTime > :now "
+            + "ORDER BY t.startTime ASC")
+    List<Slot> findAvailableSlotsByTutor(@Param("tutorId") Long tutorId,
+                                         @Param("now") LocalDateTime now,
+                                         Pageable pageable);
+
+    /** True if the tutor already has a slot that overlaps [start, end). Back-to-back slots do not overlap. */
+    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END FROM Slot t "
+            + "WHERE t.tutorId = :tutorId AND t.startTime < :rangeEnd AND t.endTime > :rangeStart")
+    boolean existsOverlappingSlot(@Param("tutorId") Long tutorId,
+                                  @Param("rangeStart") LocalDateTime start,
+                                  @Param("rangeEnd") LocalDateTime end);
+
     /** Legacy query from the original project (row lock). Kept so existing code still compiles. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(value = "SELECT t FROM Slot t WHERE t.isReserved = false AND t.startTime >= :now ORDER BY t.startTime ASC")

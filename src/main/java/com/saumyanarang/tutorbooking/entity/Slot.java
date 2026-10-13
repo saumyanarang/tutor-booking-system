@@ -20,6 +20,13 @@ public class Slot extends Auditable implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * The tutor who published this slot. Stored as a plain id (not a User association) so Slot stays
+     * cheap to serialize into the Redis cache. Null only for the legacy demo rows from the first migration.
+     */
+    @Column(name = "tutor_id")
+    private Long tutorId;
+
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 

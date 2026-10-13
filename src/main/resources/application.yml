@@ -1,11 +1,11 @@
 spring:
   application:
-    name: booking
+    name: tutor-booking
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/bookingdb
-    username: azki
-    password: azki!p@ss
+    url: jdbc:postgresql://localhost:5432/tutorbooking
+    username: tutorbooking
+    password: tutorbooking
   data:
     redis:
       host: localhost
@@ -27,6 +27,12 @@ spring:
     database-change-log-lock-table: Z_LIQ_CHANGELOG_LOCK
     change-log: classpath:db/changelog/db.changelog-master.xml
     enabled: true
+
+# Secret used to sign login tokens (HS256, at least 32 bytes). The default below is for local
+# development and tests ONLY - set JWT_SECRET to a long random value anywhere else.
+jwt:
+  secret: ${JWT_SECRET:local-dev-only-secret-change-me-0123456789}
+
 booking:
   queue:
     batch-size: 50

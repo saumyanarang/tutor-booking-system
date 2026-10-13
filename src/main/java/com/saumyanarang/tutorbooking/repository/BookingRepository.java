@@ -24,6 +24,26 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsByUserEmailAndStartTimeAfter(@Param("email") String email, @Param("dateTime") LocalDateTime dateTime);
 
     /**
+     * True if the student already holds a booking whose time overlaps [start, end).
+     * Back-to-back lessons do not overlap, so a student can book consecutive slots.
+     */
+    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Booking b " +
+           "WHERE b.user.id = :userId AND b.slot.startTime < :rangeEnd AND b.slot.endTime > :rangeStart")
+    boolean existsOverlappingBookingForUser(@Param("userId") Long userId,
+                                            @Param("rangeStart") LocalDateTime start,
+                                            @Param("rangeEnd") LocalDateTime end);
+
+    /** All bookings a student has made, soonest lesson first. */
+    @Query("SELECT b FROM Booking b JOIN FETCH b.slot s WHERE b.user.id = :studentId ORDER BY s.startTime ASC")
+    List<Booking> findAllForStudent(@Param("studentId") Long studentId);
+
+    /** All bookings made on a tutor's slots, soonest lesson first. */
+    @Query("SELECT b FROM Booking b JOIN FETCH b.slot s WHERE s.tutorId = :tutorId ORDER BY s.startTime ASC")
+    List<Booking> findAllForTutor(@Param("tutorId") Long tutorId);
+
+    long countBySlotId(Long slotId);
+
+    /**
      * Finds all bookings that have expired based on the given threshold time.
      * This is used for cleaning up old bookings.
      *

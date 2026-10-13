@@ -4,8 +4,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -14,12 +16,21 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    // حداقل ۲۵ کاراکتر
-    private static final String secret = "mySecretKeyForJwtSigningMustBeAtLeast32Bytes!";
-    private static final long expiration = 86400000; // 1 روز
+    private static final long EXPIRATION_MS = 86_400_000L; // 1 day
 
-    private Key getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    private final Key key;
+
+    /**
+     * The signing secret comes from configuration (JWT_SECRET in the environment), not from source code.
+     * HS256 needs at least 256 bits, so a shorter secret stops the application at startup instead of
+     * failing on the first login.
+     */
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length < 32) {
+            throw new IllegalStateException("jwt.secret (JWT_SECRET) must be at least 32 bytes long for HS256");
+        }
+        this.key = Keys.hmacShaKeyFor(bytes);
     }
 
     /**
@@ -32,10 +43,11 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getKey())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
+                .signWith(key)
                 .compact();
     }
+
     /**
      * Extracts the user email from a JWT token
      *
@@ -43,12 +55,7 @@ public class JwtUtil {
      * @return User's email
      */
     public String extractEmail(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        return extractAllClaims(token).getSubject();
     }
 
     /**
@@ -72,7 +79,7 @@ public class JwtUtil {
      */
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(getKey())
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
