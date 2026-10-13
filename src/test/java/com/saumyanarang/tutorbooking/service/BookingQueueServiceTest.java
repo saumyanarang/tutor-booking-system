@@ -3,7 +3,6 @@ package com.saumyanarang.tutorbooking.service;
 import com.saumyanarang.tutorbooking.dto.booking.BookingRequestDto;
 import com.saumyanarang.tutorbooking.exception.DuplicateBookingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,120 +11,101 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ValueOperations;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests of the booking queue's bookkeeping with a mocked RedisTemplate.
+ * (Real Redis behaviour is exercised by the Testcontainers tests in the integration package.)
+ */
 @ExtendWith(MockitoExtension.class)
 class BookingQueueServiceTest {
 
-    @Mock
-    private RedisTemplate<String, Object> redisTemplate;
+    private static final String EMAIL = "test@example.com";
 
-    @Mock
-    private BookingService bookingService;
+    @Mock private RedisTemplate<String, Object> redisTemplate;
+    @Mock private BookingService bookingService;
+    @Mock private RedisCleanupService redisCleanupService;
+    @Mock private ListOperations<String, Object> listOperations;
+    @Mock private ValueOperations<String, Object> valueOperations;
+    @Mock private SetOperations<String, Object> setOperations;
 
-    @Mock
-    private ListOperations<String, Object> listOperations;
-
-    @Mock
-    private ValueOperations<String, Object> valueOperations;
-
-    private ObjectMapper objectMapper;
-    private MeterRegistry meterRegistry;
     private BookingQueueService queueService;
-    private final RedisCleanupService redisCleanupService;
-
-    BookingQueueServiceTest(ObjectMapper objectMapper, MeterRegistry meterRegistry, BookingQueueService queueService, RedisCleanupService redisCleanupService) {
-        this.objectMapper = objectMapper;
-        this.meterRegistry = meterRegistry;
-        this.queueService = queueService;
-        this.redisCleanupService = redisCleanupService;
-    }
-
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
-        meterRegistry = new SimpleMeterRegistry();
+        // Built by hand (not injected into the test class), with a real ObjectMapper and an in-memory metrics registry.
+        queueService = new BookingQueueService(
+                redisTemplate, bookingService, new ObjectMapper(), new SimpleMeterRegistry(), redisCleanupService);
+    }
 
-        when(redisTemplate.opsForList()).thenReturn(listOperations);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-
-        queueService = new BookingQueueService(redisTemplate, bookingService, objectMapper, meterRegistry,redisCleanupService);
+    private BookingRequestDto request(String email) {
+        BookingRequestDto request = new BookingRequestDto();
+        request.setEmail(email);
+        return request;
     }
 
     @Test
     void shouldEnqueueBookingRequest() {
-        // Given
-        BookingRequestDto request = new BookingRequestDto();
-        request.setEmail("test@example.com");
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
-        // When
-        String requestId = queueService.enqueueBookingRequest(request);
+        String requestId = queueService.enqueueBookingRequest(request(EMAIL));
 
-        // Then
         assertNotNull(requestId);
-        verify(listOperations).rightPush(anyString(), anyString());
-        verify(valueOperations).set(contains("booking:status:"), eq(BookingQueueService.RequestStatus.QUEUED.name()));
+        verify(listOperations).rightPush(eq("booking:queue"), anyString());
+        verify(valueOperations).set("booking:status:" + requestId, BookingQueueService.RequestStatus.QUEUED.name());
+        verify(redisCleanupService).setExpiryOnStatusKey("booking:status:" + requestId);
+        verify(setOperations).add("booking:emails:queued", EMAIL);
+    }
+
+    @Test
+    void shouldRejectAnEmailThatIsAlreadyWaitingInTheQueue() {
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        when(setOperations.isMember("booking:emails:queued", EMAIL)).thenReturn(true);
+
+        assertThrows(DuplicateBookingException.class, () -> queueService.enqueueBookingRequest(request(EMAIL)));
+
+        verify(redisTemplate, never()).opsForList();
     }
 
     @Test
     void shouldGetRequestStatus() {
-        // Given
-        String requestId = "test-request-id";
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         String status = BookingQueueService.RequestStatus.PROCESSING.name();
-        when(valueOperations.get(anyString())).thenReturn(status);
+        when(valueOperations.get("booking:status:test-request-id")).thenReturn(status);
 
-        // When
-        String result = queueService.getRequestStatus(requestId);
+        String result = queueService.getRequestStatus("test-request-id");
 
-        // Then
         assertEquals(status, result);
-        verify(valueOperations).get("booking:status:" + requestId);
     }
 
     @Test
     void shouldReturnNullWhenRequestStatusNotFound() {
-        // Given
-        String requestId = "test-request-id";
-        when(valueOperations.get(anyString())).thenReturn(null);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("booking:status:test-request-id")).thenReturn(null);
 
-        // When
-        String result = queueService.getRequestStatus(requestId);
-
-        // Then
-        assertNull(result);
-        verify(valueOperations).get("booking:status:" + requestId);
+        assertNull(queueService.getRequestStatus("test-request-id"));
     }
 
     @Test
     void shouldReportQueueLength() {
-        // Given
-        Long expectedLength = 5L;
-        when(listOperations.size(anyString())).thenReturn(expectedLength);
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+        when(listOperations.size("booking:queue")).thenReturn(5L);
 
-        // When
-        long length = queueService.getQueueLength();
-
-        // Then
-        assertEquals(expectedLength, length);
-        verify(listOperations).size("booking:queue");
+        assertEquals(5L, queueService.getQueueLength());
     }
 
     @Test
-    void shouldHandleDuplicateBookingException() {
-        // Given
-        BookingRequestDto request = new BookingRequestDto();
-        request.setEmail("test@example.com");
+    void shouldReportZeroWhenRedisHasNoQueueYet() {
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+        when(listOperations.size("booking:queue")).thenReturn(null);
 
-        when(queueService.isUserAlreadyInQueue(anyString())).thenReturn(true);
-
-        // When/Then
-        assertThrows(DuplicateBookingException.class, () -> queueService.enqueueBookingRequest(request));
-
-        verify(redisTemplate, never()).opsForList();
+        assertEquals(0L, queueService.getQueueLength());
     }
 }

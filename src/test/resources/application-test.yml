@@ -1,17 +1,13 @@
+# Test profile. The datasource and Redis host/port are NOT set here: Testcontainers starts a real
+# PostgreSQL and a real Redis and injects their addresses (see support/PostgresContainerSupport and
+# support/AbstractIntegrationTest). Liquibase builds the schema exactly as it does in production, and
+# Hibernate only *validates* that the entities match it - so a mismatch between a migration and an
+# entity fails the build instead of surfacing in production.
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/booking_test
-    driver-class-name: org.postgresql.Driver
-    username: booking_user
-    password: strongpassword
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+      ddl-auto: validate
+    show-sql: false
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
@@ -19,4 +15,6 @@ spring:
 logging:
   level:
     org.springframework: INFO
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: INFO
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN
